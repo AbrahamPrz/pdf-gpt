@@ -19,21 +19,27 @@ MATH_STANDARDS = os.path.join(AZ_STANDARDS, 'mathematics')
 SCIENCE_STANDARDS = os.path.join(AZ_STANDARDS, 'science')
 
 
+def get_pdf_files(grade: str, subject: str) -> list[str]:
+    pdf_paths = []
+    
+    subject_path = os.listdir(AZ_STANDARDS)[int(subject) - 1]
+    full_subject_path = os.path.join(AZ_STANDARDS, subject_path)
+    grade_path = os.listdir(full_subject_path)[int(grade)]
+    full_grade_path = os.path.join(full_subject_path, grade_path)
+    
+    for pdf in os.listdir(full_grade_path):
+        pdf_paths.append(os.path.join(full_grade_path, pdf))
+    
+    return pdf_paths
+
+
 def main(grade: str, subject: str) -> None:
     pdf_texts = []
     raw_text = ''
     texts = []
     
     # get pdf files based on subject and grade
-    if subject == '1':
-        pdf_files = [os.path.join(MATH_STANDARDS, f) for f in os.listdir(MATH_STANDARDS) if f.lower().endswith('.pdf')]
-    else:
-        if grade == '1':
-            pdf_files = [os.path.join(SCIENCE_STANDARDS, '1_FirstGradeScienceStandardsPlacemat.pdf')]
-        elif grade == '2':
-            pdf_files = [os.path.join(SCIENCE_STANDARDS, '2_SecondGradeScienceStandardsPlacemat.pdf')]
-        else:
-            pdf_files = [os.path.join(SCIENCE_STANDARDS, '3_ThirdGradeScienceStandardsPlacement.pdf')]
+    pdf_files = get_pdf_files(grade, subject)
     
     # convert pdf files to text
     for pdf in pdf_files:
@@ -76,12 +82,12 @@ def main(grade: str, subject: str) -> None:
 
 
 if __name__ == '__main__':
-    grade = input("Select a grade: \n1. First Grade\n2. Second Grade\n3. Third Grade\n> ")
-    while grade not in ['1', '2', '3']:
-        grade = input("Please select one of the three options listed above:\n> ")
-    
     subject = input("Select a subject: \n1. Math\n2. Science\n> ")
     while subject not in ['1', '2']:
         subject = input("Please select the number of one of the options listed above:\n> ")
+        
+    grade = input("Select a grade: \n1. First Grade\n2. Second Grade\n3. Third Grade\n> ")
+    while grade not in ['1', '2', '3']:
+        grade = input("Please select one of the three options listed above:\n> ")
     
     main(grade=grade, subject=subject)
