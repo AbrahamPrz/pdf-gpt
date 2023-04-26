@@ -15,8 +15,6 @@ load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 AZ_STANDARDS = os.path.join(BASE_DIR, 'az-standards')
-MATH_STANDARDS = os.path.join(AZ_STANDARDS, 'mathematics')
-SCIENCE_STANDARDS = os.path.join(AZ_STANDARDS, 'science')
 
 
 def get_pdf_files(grade: str, subject: str) -> list[str]:
