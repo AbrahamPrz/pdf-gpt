@@ -17,21 +17,28 @@ BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 AZ_STANDARDS = os.path.join(BASE_DIR, 'az-standards')
 
 
-def get_pdf_files(grade: str, subject: str) -> list[str]:
+def get_pdf_files(grade: int, subject: int) -> list[str]:
     pdf_paths = []
     
-    subject_path = os.listdir(AZ_STANDARDS)[int(subject) - 1]
+    az_standards_dir = os.listdir(AZ_STANDARDS)
+    az_standards_dir.sort()
+        
+    subject_path = az_standards_dir[subject]
     full_subject_path = os.path.join(AZ_STANDARDS, subject_path)
-    grade_path = os.listdir(full_subject_path)[int(grade)]
+    
+    subject_dir = os.listdir(full_subject_path)
+    subject_dir.sort()
+    
+    grade_path = subject_dir[grade]
     full_grade_path = os.path.join(full_subject_path, grade_path)
     
     for pdf in os.listdir(full_grade_path):
         pdf_paths.append(os.path.join(full_grade_path, pdf))
-    
+        
     return pdf_paths
 
 
-def main(grade: str, subject: str) -> None:
+def main(grade: int, subject: int) -> None:
     pdf_texts = []
     raw_text = ''
     texts = []
@@ -88,4 +95,4 @@ if __name__ == '__main__':
     while grade not in ['1', '2', '3']:
         grade = input("Please select one of the three options listed above:\n> ")
     
-    main(grade=grade, subject=subject)
+    main(grade=int(grade), subject=int(subject))
