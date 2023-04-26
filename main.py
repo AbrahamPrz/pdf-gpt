@@ -14,8 +14,8 @@ os.environ["OPENAI_API_KEY"] = "<YOUR-OPENAI-API-KEY>"
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 AZ_STANDARDS = os.path.join(BASE_DIR, 'az-standards')
-MATH_STANDARDS = os.path.join(AZ_STANDARDS, 'mathematics-standards')
-SCIENCE_STANDARDS = os.path.join(AZ_STANDARDS, 'standards-science')
+MATH_STANDARDS = os.path.join(AZ_STANDARDS, 'mathematics')
+SCIENCE_STANDARDS = os.path.join(AZ_STANDARDS, 'science')
 
 
 def main(grade: str, subject: str) -> None:
@@ -26,11 +26,11 @@ def main(grade: str, subject: str) -> None:
         pdf_files = [os.path.join(MATH_STANDARDS, f) for f in os.listdir(MATH_STANDARDS) if f.lower().endswith('.pdf')]
     else:
         if grade == '1':
-            pdf_files = ['/home/abraham/gesd32/pdf-gpt/manual-az-standards/science-standards/1_FirstGradeScienceStandardsPlacemat.pdf']
+            pdf_files = [os.path.join(SCIENCE_STANDARDS, '1_FirstGradeScienceStandardsPlacemat.pdf')]
         elif grade == '2':
-            pdf_files = ['/home/abraham/gesd32/pdf-gpt/manual-az-standards/science-standards/2_SecondGradeScienceStandardsPlacemat.pdf']
+            pdf_files = [os.path.join(SCIENCE_STANDARDS, '2_SecondGradeScienceStandardsPlacemat.pdf')]
         else:
-            pdf_files = ['/home/abraham/gesd32/pdf-gpt/manual-az-standards/science-standards/3_ThirdGradeScienceStandardsPlacement.pdf']
+            pdf_files = [os.path.join(SCIENCE_STANDARDS, '3_ThirdGradeScienceStandardsPlacement.pdf')]
     
     pdf_texts = []
     raw_text = ''
