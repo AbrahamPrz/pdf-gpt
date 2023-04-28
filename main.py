@@ -1,4 +1,5 @@
-# Code obtained from https://www.youtube.com/watch?v=TLf90ipMzfE
+import gradio as gr
+import time
 import os
 from PyPDF2 import PdfReader
 from langchain.embeddings.openai import OpenAIEmbeddings
@@ -8,6 +9,7 @@ from langchain.chains.question_answering import load_qa_chain
 from langchain.llms import OpenAI
 from dotenv import load_dotenv
 
+
 load_dotenv()
 # Make sure to set your OpenAI API key as an environment variable:
 # OPENAI_API_KEY = 'your-api-key-here'
@@ -15,84 +17,93 @@ load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 AZ_STANDARDS = os.path.join(BASE_DIR, 'az-standards')
+SUBJECT_LIST = ["Math", "Science"]
+GRADE_LIST = [1, 2, 3]
 
 
-def get_pdf_files(grade: int, subject: int) -> list[str]:
-    pdf_paths = []
+
+with gr.Blocks() as demo:
     
-    az_standards_dir = os.listdir(AZ_STANDARDS)
-    az_standards_dir.sort()
+    subject = gr.Radio(choices=SUBJECT_LIST, label="Subject", value=SUBJECT_LIST[0], interactive=True)
+    grade = gr.Radio(choices=GRADE_LIST, label="Grade", value=GRADE_LIST[0], interactive=True)
+    
+    msg = gr.Textbox(placeholder="Type your message here")
+    chatbot = gr.Chatbot()
+    clear = gr.Button("Clear")
+    
+    def user(user_message, history):
+        return user_message, history + [[user_message, None]]
+
+    def bot(subject, grade, user_message, history):
+        pdf_paths = []
         
-    subject_path = az_standards_dir[subject]
-    full_subject_path = os.path.join(AZ_STANDARDS, subject_path)
-    
-    subject_dir = os.listdir(full_subject_path)
-    subject_dir.sort()
-    
-    grade_path = subject_dir[grade]
-    full_grade_path = os.path.join(full_subject_path, grade_path)
-    
-    for pdf in os.listdir(full_grade_path):
-        pdf_paths.append(os.path.join(full_grade_path, pdf))
+        subject_selection, grade_selection = SUBJECT_LIST.index(subject), GRADE_LIST.index(grade)
         
-    return pdf_paths
-
-
-def main(grade: int, subject: int) -> None:
-    pdf_texts = []
-    raw_text = ''
-    texts = []
-    
-    # get pdf files based on subject and grade
-    pdf_files = get_pdf_files(grade, subject)
-    
-    # convert pdf files to text
-    for pdf in pdf_files:
-        try :
-            reader = PdfReader(pdf)
-        except:
-            pass
-        for i, page in enumerate(reader.pages):
-            text = page.extract_text()
-            if text:
-                raw_text += text
-        pdf_texts.append(raw_text)
+        az_standards_dir = os.listdir(AZ_STANDARDS)
+        az_standards_dir.sort()
+            
+        subject_path = az_standards_dir[subject_selection+1]
+        full_subject_path = os.path.join(AZ_STANDARDS, subject_path)
+        
+        subject_dir = os.listdir(full_subject_path)
+        subject_dir.sort()
+        
+        grade_path = subject_dir[grade_selection+1]
+        full_grade_path = os.path.join(full_subject_path, grade_path)
+        
+        downloadable_files = []
+        
+        for pdf in os.listdir(full_grade_path):
+            pdf_paths.append(os.path.join(full_grade_path, pdf))
+        
+        pdf_texts = []
         raw_text = ''
+        texts = []
+        
+        # convert pdf files to text
+        for pdf in pdf_paths:
+            downloadable_files.append(gr.File(value=pdf, label="Context files"))
+            try :
+                reader = PdfReader(pdf)
+            except:
+                pass
+            for i, page in enumerate(reader.pages):
+                text = page.extract_text()
+                if text:
+                    raw_text += text
+            pdf_texts.append(raw_text)
+            raw_text = ''
 
-    # split text into chunks
-    text_splitter = CharacterTextSplitter(
-        separator="\n",
-        chunk_size=1000,
-        chunk_overlap=200,
-        length_function=len
+        # split text into chunks
+        text_splitter = CharacterTextSplitter(
+            separator="\n",
+            chunk_size=1000,
+            chunk_overlap=200,
+            length_function=len
+        )
+
+        for pdf_text in pdf_texts:
+            texts += text_splitter.split_text(pdf_text)
+        
+        # create embeddings
+        embeddings = OpenAIEmbeddings()
+        docsearch = FAISS.from_texts(texts, embeddings)
+        chain = load_qa_chain(OpenAI(model_name='gpt-3.5-turbo', temperature=0.9), chain_type="stuff")
+        
+        docs = docsearch.similarity_search(user_message)
+        bot_message = chain.run(input_documents=docs, question=user_message)
+        
+        history[-1][1] = ""
+        for character in bot_message:
+            history[-1][1] += character
+            # time.sleep(0.05)
+            yield '', history
+    
+    msg.submit(user, [msg, chatbot], [msg, chatbot], queue=False).then(
+        bot, [subject, grade, msg, chatbot], [msg, chatbot]
     )
-
-    for pdf_text in pdf_texts:
-        texts += text_splitter.split_text(pdf_text)
-    
-    # create embeddings
-    embeddings = OpenAIEmbeddings()
-    docsearch = FAISS.from_texts(texts, embeddings)
-    chain = load_qa_chain(OpenAI(model_name='gpt-3.5-turbo', temperature=0.9), chain_type="stuff")
-    
-    # ask questions
-    query = input("Ask a question: ")
-    
-    while query.lower() != 'quit':
-        docs = docsearch.similarity_search(query)
-        answer = chain.run(input_documents=docs, question=query)
-        
-        print(f'Answer: {answer}')    
-        query = input("Please enter a question: ")
+    clear.click(lambda: None, None, chatbot, queue=False)
 
 
-if __name__ == '__main__':
-    subject = input("Select a subject: \n1. Math\n2. Science\n> ")
-    while subject not in ['1', '2']:
-        subject = input("Please select the number of one of the options listed above:\n> ")
-        
-    grade = input("Select a grade: \n1. First Grade\n2. Second Grade\n3. Third Grade\n> ")
-    while grade not in ['1', '2', '3']:
-        grade = input("Please select one of the three options listed above:\n> ")
-    
-    main(grade=int(grade), subject=int(subject))
+demo.queue()
+demo.launch(share=True)
