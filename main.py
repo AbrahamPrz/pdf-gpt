@@ -37,6 +37,9 @@ with gr.Blocks() as demo:
     def bot(subject, grade, user_message, history):
         pdf_paths = []
         
+        pdf_paths.append(os.path.join(AZ_STANDARDS, 'base', 'lesson_plan_template.pdf'))
+        # The template provided allows the LM to understand the context of the question and provide an example for a lesson plan.
+        
         subject_selection, grade_selection = SUBJECT_LIST.index(subject), GRADE_LIST.index(grade)
         
         az_standards_dir = os.listdir(AZ_STANDARDS)
