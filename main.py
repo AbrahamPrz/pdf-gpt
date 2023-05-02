@@ -23,23 +23,19 @@ GRADE_LIST = [1, 2, 3]
 
 
 with gr.Blocks() as demo:
+    pdf_paths = []
     
     subject = gr.Radio(choices=SUBJECT_LIST, label="Subject", value=SUBJECT_LIST[0], interactive=True)
     grade = gr.Radio(choices=GRADE_LIST, label="Grade", value=GRADE_LIST[0], interactive=True)
     
-    msg = gr.Textbox(placeholder="Type your message here")
     chatbot = gr.Chatbot()
+    msg = gr.Textbox(placeholder="Type your message here")
     clear = gr.Button("Clear")
     files_used = gr.Files(value=[], label="Files used")
     
     
-    def user(user_message, history):
-        return user_message, history + [[user_message, None]]
-
-
-    def bot(subject, grade, user_message, history, files_used):
-        pdf_paths = []
-        
+    def update_list(subject, grade, files_used):
+        pdf_paths.clear()
         subject_selection, grade_selection = SUBJECT_LIST.index(subject), GRADE_LIST.index(grade)
         
         az_standards_dir = os.listdir(AZ_STANDARDS)
@@ -56,12 +52,19 @@ with gr.Blocks() as demo:
 
         for pdf in os.listdir(full_grade_path):
             pdf_paths.append(os.path.join(full_grade_path, pdf))
+                
+        # The template provided allows the LM to understand the context of the question and provide an example for a lesson plan.
+        pdf_paths.append(os.path.join(AZ_STANDARDS, 'base', 'lesson_plan_template.pdf'))
         
         files_used = pdf_paths
+        return files_used
+    
         
-        pdf_paths.append(os.path.join(AZ_STANDARDS, 'base', 'lesson_plan_template.pdf'))
-        # The template provided allows the LM to understand the context of the question and provide an example for a lesson plan.
-        
+    def user(user_message, history):
+        return user_message, history + [[user_message, None]]
+
+
+    def bot(user_message, history):
         pdf_texts = []
         raw_text = ''
         texts = []
@@ -102,14 +105,18 @@ with gr.Blocks() as demo:
         for character in bot_message:
             history[-1][1] += character
             # time.sleep(0.05)
-            yield '', history, files_used
+            yield '', history
 
+    subject.change(update_list, [subject, grade, files_used], files_used)
+    grade.change(update_list, [subject, grade, files_used], files_used)
 
     msg.submit(user, [msg, chatbot], [msg, chatbot], queue=False).then(
-        bot, [subject, grade, msg, chatbot, files_used], [msg, chatbot, files_used]
+        bot, [msg, chatbot], [msg, chatbot]
     )
     clear.click(lambda: None, None, chatbot, queue=False)
 
+    # Runs the function at the beginning to populate the list of files used.
+    demo.load(update_list, [subject, grade, files_used], files_used)
 
 demo.queue()
 demo.launch(share=True)
