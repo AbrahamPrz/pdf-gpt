@@ -99,7 +99,7 @@ with gr.Blocks() as demo:
         chain = load_qa_chain(OpenAI(model_name='gpt-3.5-turbo', temperature=0.9), chain_type="stuff")
         
         docs = docsearch.similarity_search(user_message)
-        bot_message = chain.run(input_documents=docs, question=user_message)
+        bot_message = chain.run(input_documents=docs, question=user_message) if user_message else "I can't understand you."
         
         history[-1][1] = ""
         for character in bot_message:
@@ -110,8 +110,8 @@ with gr.Blocks() as demo:
     subject.change(update_list, [subject, grade, files_used], files_used)
     grade.change(update_list, [subject, grade, files_used], files_used)
 
-    msg.submit(user, [msg, chatbot], [msg, chatbot], queue=False).then(
-        bot, [msg, chatbot], [msg, chatbot]
+    msg.submit(fn=user, inputs=[msg, chatbot], outputs=[msg, chatbot], queue=False).then(
+        fn=bot, inputs=[msg, chatbot], outputs=[msg, chatbot]
     )
     clear.click(lambda: None, None, chatbot, queue=False)
 
