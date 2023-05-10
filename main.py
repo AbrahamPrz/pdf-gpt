@@ -1,5 +1,4 @@
 import gradio as gr
-import time
 import os
 from PyPDF2 import PdfReader
 from langchain.embeddings.openai import OpenAIEmbeddings
@@ -99,7 +98,14 @@ with gr.Blocks() as demo:
         chain = load_qa_chain(OpenAI(model_name='gpt-3.5-turbo', temperature=0.9), chain_type="stuff")
         
         docs = docsearch.similarity_search(user_message)
-        bot_message = chain.run(input_documents=docs, question=user_message) if user_message else "I can't understand you."
+        bot_message = chain.run(
+            input_documents=docs, 
+            question=f'''
+                Answer the following text delimited by truple backticks only in the given context ```{user_message}```. \
+                If you're asked to provide an example, please provide an example. \
+                If you're asked to do a lesson plan, please provide a lesson plan.
+                '''
+        ) if user_message else "I can't understand you."
         
         history[-1][1] = ""
         for character in bot_message:
