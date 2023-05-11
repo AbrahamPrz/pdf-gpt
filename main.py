@@ -95,7 +95,7 @@ with gr.Blocks() as demo:
         # create embeddings
         embeddings = OpenAIEmbeddings()
         docsearch = FAISS.from_texts(texts, embeddings)
-        chain = load_qa_chain(OpenAI(model_name='gpt-3.5-turbo', temperature=0.9), chain_type="stuff")
+        chain = load_qa_chain(OpenAI(model_name='gpt-3.5-turbo', temperature=0.4), chain_type="stuff")
         
         docs = docsearch.similarity_search(user_message)
         bot_message = chain.run(
