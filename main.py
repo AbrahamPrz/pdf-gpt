@@ -63,7 +63,7 @@ with gr.Blocks() as demo:
         return user_message, history + [[user_message, None]]
 
 
-    def bot(user_message, history):
+    def bot(user_message, history, subject, grade):
         pdf_texts = []
         raw_text = ''
         texts = []
@@ -97,15 +97,29 @@ with gr.Blocks() as demo:
         docsearch = FAISS.from_texts(texts, embeddings)
         chain = load_qa_chain(OpenAI(model_name='gpt-3.5-turbo', temperature=0.4), chain_type="stuff")
         
-        docs = docsearch.similarity_search(user_message)
+        docs = docsearch.similarity_search(user_message, include_metadata=True)
         bot_message = chain.run(
             input_documents=docs, 
             question=f'''
-                Answer the following text delimited by truple backticks only in the given context ```{user_message}```. \
+                You're a friendly chatbot. \
+                You can reply to basic interactions, like greetings, but you can only answer questions about the Arizona State Standards for the subject {subject} and grade {grade}.
+                
+                Answer the following text delimited by triple backticks only in the given context ```{user_message}```.
+                
+                Use this chat history to help you answer the question, delimited by ***, if needed. \
+                The format of this chat history is a list of lists, where the first element of each list is the user message, the second element is the bot message \
+                and the newer list is the latest chat interaction. \
+                ***{history}***
+                
                 If you're asked to provide an example, please provide an example. \
                 If you're asked to do a lesson plan, please provide a lesson plan.
+                
+                IMPORTANT: If you aren't provided with an example or a lesson plan petition, don't reply saying that you weren't provided with one. \
+                If the user ask for things not related to the Arizona State Standards, please reply kindly that you can only answer Arizona State Standards related questions.
                 '''
         ) if user_message else "I can't understand you."
+        
+        # print(str(docs)) # We can use this to see the metadata of the documents that were used to answer the question!.
         
         history[-1][1] = ""
         for character in bot_message:
@@ -114,10 +128,12 @@ with gr.Blocks() as demo:
             yield '', history
 
     subject.change(update_list, [subject, grade, files_used], files_used)
+    subject.change(lambda: None, None, chatbot, queue=False)
     grade.change(update_list, [subject, grade, files_used], files_used)
+    grade.change(lambda: None, None, chatbot, queue=False)
 
     msg.submit(fn=user, inputs=[msg, chatbot], outputs=[msg, chatbot], queue=False).then(
-        fn=bot, inputs=[msg, chatbot], outputs=[msg, chatbot]
+        fn=bot, inputs=[msg, chatbot, subject, grade], outputs=[msg, chatbot]
     )
     clear.click(lambda: None, None, chatbot, queue=False)
 
